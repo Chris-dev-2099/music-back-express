@@ -1,0 +1,13 @@
+{
+  "name": "apimusic",
+  "main": "src/index.js",
+  "compatibility_date": "2026-04-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "r2_buckets": [
+    {
+      "binding": "MY_BUCKET",
+      "bucket_name": "canciones",
+      "preview_bucket_name": "canciones"
+    }
+  ]
+}
