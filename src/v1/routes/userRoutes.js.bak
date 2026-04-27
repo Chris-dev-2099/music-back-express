@@ -1,0 +1,19 @@
+// src/v1/routes/userRoutes.js
+import express from 'express'
+// ✅ Named imports (coinciden con los exports del controller)
+import { register, login, getAll, getById, update, deleteFn } from '../../controllers/userController.js'
+
+const router = express.Router()
+
+// 🔓 Rutas públicas
+router.post('/register', register)
+router.post('/login', login)
+
+// 🔐 Rutas protegidas
+router.get('/', getAll)
+router.get('/:id', getById)
+router.put('/:id', update)
+router.delete('/:id', deleteFn)  // ← Usar deleteFn
+
+// ✅ EXPORT DEFAULT (no module.exports)
+export default router

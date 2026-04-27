@@ -1,0 +1,138 @@
+// src/controllers/userController.js
+import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+import { v4 as uuidv4 } from 'uuid'
+
+// 🔧 Obtener DB del global (el "cable correcto")
+const getDB = () => globalThis.globalEnv?.DB
+
+const generateToken = (userId, userData) => {
+  return jwt.sign({ userId, ...userData }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' })
+}
+
+const authenticateToken = (req) => {
+  const authHeader = req.headers?.authorization || req.headers?.Authorization
+  const token = authHeader?.replace('Bearer ', '')
+  if (!token) return null
+  try { return jwt.verify(token, process.env.JWT_SECRET || 'dev-secret') } 
+  catch { return null }
+}
+
+export const register = async (req, res) => {
+  try {
+    const db = getDB()
+    if (!db) return res.status(500).json({ error: 'Base de datos no disponible' })
+    
+    const { tipo_usuario, nombre_usuario, apellido_usuario, contrasena } = req.body || {}
+    if (!nombre_usuario || !contrasena) return res.status(400).json({ error: 'nombre_usuario y contrasena son requeridos' })
+    
+    const exists = await db.prepare('SELECT id_usuario FROM usuarios WHERE nombre_usuario = ?').bind(nombre_usuario).first()
+    if (exists) return res.status(409).json({ error: 'El nombre de usuario ya existe' })
+    
+    const hashedPassword = await bcrypt.hash(contrasena, 10)
+    const id = uuidv4()
+    await db.prepare('INSERT INTO usuarios (id_usuario, tipo_usuario, nombre_usuario, apellido_usuario, contrasena) VALUES (?, ?, ?, ?, ?)')
+      .bind(id, tipo_usuario || 'user', nombre_usuario, apellido_usuario, hashedPassword).run()
+    
+    res.status(201).json({ success: true, data: { id, tipo_usuario, nombre_usuario, apellido_usuario } })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error interno: ' + err.message })
+  }
+}
+
+export const login = async (req, res) => {
+  try {
+    const db = getDB()
+    if (!db) return res.status(500).json({ error: 'Base de datos no disponible' })
+    
+    const { nombre_usuario, contrasena } = req.body || {}
+    if (!nombre_usuario || !contrasena) return res.status(400).json({ error: 'nombre_usuario y contrasena son requeridos' })
+    
+    const user = await db.prepare('SELECT * FROM usuarios WHERE nombre_usuario = ?').bind(nombre_usuario).first()
+    if (!user) return res.status(401).json({ error: 'Usuario o contraseña inválidos' })
+    
+    let isValid = user.contrasena?.startsWith('$2b$') 
+      ? await bcrypt.compare(contrasena, user.contrasena) 
+      : (contrasena === user.contrasena)
+    
+    if (!isValid) return res.status(401).json({ error: 'Usuario o contraseña inválidos' })
+    
+    const token = generateToken(user.id_usuario, { tipo_usuario: user.tipo_usuario, nombre_usuario: user.nombre_usuario })
+    const { contrasena: _, ...safeUser } = user
+    res.json({ success: true, data: { user: safeUser, token } })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error interno: ' + err.message })
+  }
+}
+
+export const getAll = async (req, res) => {
+  try {
+    const auth = authenticateToken(req)
+    if (!auth) return res.status(401).json({ error: 'No autenticado' })
+    const db = getDB()
+    if (!db) return res.status(500).json({ error: 'Base de datos no disponible' })
+    const { results } = await db.prepare('SELECT id_usuario, tipo_usuario, nombre_usuario, apellido_usuario FROM usuarios ORDER BY id_usuario DESC').all()
+    res.json({ success: true, data: results || [] })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error interno: ' + err.message })
+  }
+}
+
+export const getById = async (req, res) => {
+  try {
+    const auth = authenticateToken(req)
+    if (!auth) return res.status(401).json({ error: 'No autenticado' })
+    const { id } = req.params || {}
+    const db = getDB()
+    if (!db) return res.status(500).json({ error: 'Base de datos no disponible' })
+    const user = await db.prepare('SELECT id_usuario, tipo_usuario, nombre_usuario, apellido_usuario FROM usuarios WHERE id_usuario = ?').bind(id).first()
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
+    res.json({ success: true, data: user })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error interno: ' + err.message })
+  }
+}
+
+export const update = async (req, res) => {
+  try {
+    const auth = authenticateToken(req)
+    if (!auth) return res.status(401).json({ error: 'No autenticado' })
+    const { id } = req.params || {}
+    const { tipo_usuario, nombre_usuario, apellido_usuario } = req.body || {}
+    const db = getDB()
+    if (!db) return res.status(500).json({ error: 'Base de datos no disponible' })
+    
+    const updates = [], values = []
+    if (tipo_usuario !== undefined) { updates.push('tipo_usuario = ?'); values.push(tipo_usuario) }
+    if (nombre_usuario !== undefined) { updates.push('nombre_usuario = ?'); values.push(nombre_usuario) }
+    if (apellido_usuario !== undefined) { updates.push('apellido_usuario = ?'); values.push(apellido_usuario) }
+    if (updates.length === 0) return res.status(400).json({ error: 'No hay campos para actualizar' })
+    values.push(id)
+    
+    await db.prepare(`UPDATE usuarios SET ${updates.join(', ')} WHERE id_usuario = ?`).bind(...values).run()
+    res.json({ success: true, data: { id, tipo_usuario, nombre_usuario, apellido_usuario } })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error interno: ' + err.message })
+  }
+}
+
+export const deleteFn = async (req, res) => {
+  try {
+    const auth = authenticateToken(req)
+    if (!auth) return res.status(401).json({ error: 'No autenticado' })
+    const { id } = req.params || {}
+    const db = getDB()
+    if (!db) return res.status(500).json({ error: 'Base de datos no disponible' })
+    const result = await db.prepare('DELETE FROM usuarios WHERE id_usuario = ?').bind(id).run()
+    if (result.meta?.changes === 0) return res.status(404).json({ error: 'Usuario no encontrado' })
+    res.json({ success: true, message: 'Usuario eliminado' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Error interno: ' + err.message })
+  }
+}

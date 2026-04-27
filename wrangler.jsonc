@@ -9,5 +9,12 @@
       "bucket_name": "canciones",
       "preview_bucket_name": "canciones"
     }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ciafy",
+      "database_id": "77d1dea6-2015-4b5f-b2ab-bb62580901e7"
+    }
   ]
 }

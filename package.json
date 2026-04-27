@@ -2,8 +2,8 @@
   "name": "apimusic",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "type": "commonjs",
+  "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "start": "node ./src/index.js",
     "dev": "wrangler dev ./src/index.js",
@@ -13,11 +13,16 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "nodemon": "^3.1.14",
     "standard": "^17.1.2",
     "wrangler": "^4.84.1"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "bcryptjs": "^3.0.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "uuid": "^14.0.0"
   }
 }
