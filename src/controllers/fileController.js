@@ -1,45 +1,36 @@
-// src/controllers/fileController.js
-export const listFiles = async (req, res) => {
-  try {
-    const list = await req.env.MY_BUCKET.list()
-    res.json({ success: true, files: list.objects })
-  } catch (err) {
-    res.status(500).json({ error: 'Error interno: ' + err.message })
-  }
+export async function listFiles(bucket) {
+  const list = await bucket.list()
+  return new Response(JSON.stringify({ success: true, files: list.objects }), {
+    status: 200, headers: { 'Content-Type': 'application/json' }
+  })
 }
 
-export const uploadFile = async (req, res) => {
-  try {
-    const { key } = req.params
-    const contentType = req.headers["content-type"] ?? "application/octet-stream"
-    await req.env.MY_BUCKET.put(key, req.body, { httpMetadata: { contentType } })
-    res.status(201).json({ success: true, message: `'${key}' subido` })
-  } catch (err) {
-    res.status(500).json({ error: 'Error interno: ' + err.message })
-  }
+export async function uploadFile(request, url, bucket) {
+  const key = url.pathname.split('/').pop()
+  const contentType = request.headers.get('content-type') ?? 'application/octet-stream'
+  const body = await request.arrayBuffer()
+  await bucket.put(key, body, { httpMetadata: { contentType } })
+  return new Response(JSON.stringify({ success: true, message: `'${key}' subido` }), {
+    status: 201, headers: { 'Content-Type': 'application/json' }
+  })
 }
 
-export const downloadFile = async (req, res) => {
-  try {
-    const object = await req.env.MY_BUCKET.get(req.params.key)
-    if (!object) return res.status(404).json({ error: "Archivo no encontrado" })
-    
-    res.setHeader("Content-Type", object.httpMetadata?.contentType ?? "application/octet-stream")
-    const buffer = await object.arrayBuffer()
-    res.send(Buffer.from(buffer))
-  } catch (err) {
-    res.status(500).json({ error: 'Error interno: ' + err.message })
-  }
+export async function downloadFile(url, bucket) {
+  const key = url.pathname.split('/').pop()
+  const object = await bucket.get(key)
+  if (!object) return new Response(JSON.stringify({ error: 'Archivo no encontrado' }), {
+    status: 404, headers: { 'Content-Type': 'application/json' }
+  })
+  const contentType = object.httpMetadata?.contentType ?? 'application/octet-stream'
+  return new Response(object.body, {
+    status: 200, headers: { 'Content-Type': contentType }
+  })
 }
 
-export const deleteFile = async (req, res) => {
-  try {
-    await req.env.MY_BUCKET.delete(req.params.key)
-    res.json({ success: true, message: `'${req.params.key}' eliminado` })
-  } catch (err) {
-    res.status(500).json({ error: 'Error interno: ' + err.message })
-  }
+export async function deleteFile(url, bucket) {
+  const key = url.pathname.split('/').pop()
+  await bucket.delete(key)
+  return new Response(JSON.stringify({ success: true, message: `'${key}' eliminado` }), {
+    status: 200, headers: { 'Content-Type': 'application/json' }
+  })
 }
-
-// ❌ BORRA ESTA LÍNEA si existe:
-// module.exports = fileController;
