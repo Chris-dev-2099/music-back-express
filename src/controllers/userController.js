@@ -1,5 +1,7 @@
 import { hashPassword, verifyPassword, createToken } from '../utils/crypto.js'
 
+// Controlador para operaciones de usuarios usando D1 database
+
 export async function register(request, db) {
   const body = await request.json()
   const { nombre_usuario, contrasena } = body

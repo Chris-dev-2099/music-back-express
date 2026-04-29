@@ -46,6 +46,4 @@ export const deleteFn = async (db, id) => {
   if (result.meta?.changes === 0) throw new Error('Usuario no encontrado')
   return { success: true }
 }
-
-// ❌ BORRA ESTA LÍNEA si existe:
 // module.exports = userService;

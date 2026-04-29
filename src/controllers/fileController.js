@@ -1,3 +1,5 @@
+// Controlador para operaciones de archivos usando R2 bucket
+
 export async function listFiles(bucket) {
   const list = await bucket.list()
   return new Response(JSON.stringify({ success: true, files: list.objects }), {

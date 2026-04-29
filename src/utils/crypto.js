@@ -1,3 +1,5 @@
+// Utilidades de criptografía para hashing de contraseñas y JWT
+
 export async function hashPassword(password) {
   const encoder = new TextEncoder()
   const data = encoder.encode(password)
