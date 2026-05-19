@@ -1,5 +1,8 @@
-#dependencias
+# Dependencias
 node_modules/
+
+# Cloudflare Workers
+.wrangler/
 
 # Logs
 logs/
@@ -22,9 +25,10 @@ Thumbs.db
 dist/
 build/
 
-
 # Coverage
 coverage/
 
-.wrangler/
-migrations/001_remove_apellido_add_correo.sql
+# Variables de entorno
+.env
+.env.*
+.dev.vars
