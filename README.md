@@ -8,8 +8,8 @@ El proyecto está organizado en capas:
 
 - **Routes**: Definición de endpoints de la API
 - **Controllers**: Lógica de manejo de requests/responses
-- **Services**: Lógica de negocio (no utilizada actualmente)
-- **Utils**: Utilidades compartidas como criptografía
+- **Services**: Lógica de negocio
+- **Utils**: Utilidades compartidas (criptografía, autenticación, validaciones)
 
 ## Tecnologías
 
@@ -22,18 +22,42 @@ El proyecto está organizado en capas:
 
 ### Usuarios
 
-- `POST /api/v1/users/register` - Registrar nuevo usuario
-- `POST /api/v1/users/login` - Iniciar sesión
-- `GET /api/v1/users` - Obtener todos los usuarios
-- `PUT /api/v1/users/{id}` - Actualizar usuario
-- `DELETE /api/v1/users/{id}` - Eliminar usuario
+| Método | Ruta | Auth | Descripción |
+|--------|------|------|-------------|
+| POST | `/api/v1/users/register` | ❌ | Registrar nuevo usuario |
+| POST | `/api/v1/users/login` | ❌ | Iniciar sesión |
+| GET | `/api/v1/users` | ✅ | Obtener todos los usuarios |
+| PUT | `/api/v1/users/{id}` | ✅ | Actualizar usuario |
+| DELETE | `/api/v1/users/{id}` | ✅ | Eliminar usuario |
+
+**Registro** — `POST /api/v1/users/register`
+```json
+{
+  "nombre_usuario": "ejemplo",
+  "correo": "user@example.com",
+  "contrasena": "123456",
+  "tipo_usuario": "user"
+}
+```
+
+**Login** — `POST /api/v1/users/login`
+```json
+{
+  "nombre_usuario": "ejemplo",
+  "contrasena": "123456"
+}
+```
+
+Roles válidos: `user`, `admin`
 
 ### Archivos
 
-- `GET /api/v1/files` - Listar archivos
-- `PUT /api/v1/files/{filename}` - Subir archivo
-- `GET /api/v1/files/{filename}` - Descargar archivo
-- `DELETE /api/v1/files/{filename}` - Eliminar archivo
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/v1/files` | Listar archivos |
+| PUT | `/api/v1/files/{filename}` | Subir archivo |
+| GET | `/api/v1/files/{filename}` | Descargar archivo |
+| DELETE | `/api/v1/files/{filename}` | Eliminar archivo |
 
 ## Desarrollo
 
@@ -48,9 +72,16 @@ npm run dev
 wrangler deploy
 ```
 
+## Migración de base de datos
+
+```bash
+wrangler d1 execute ciafy --file=migrations/001_remove_apellido_add_correo.sql
+```
+
 ## Configuración
 
-Requiere las siguientes variables de entorno en Cloudflare:
+Requiere los siguientes bindings en Cloudflare:
 
 - `DB`: Binding a D1 Database
 - `MY_BUCKET`: Binding a R2 Bucket
+- `JWT_SECRET`: Secreto para firmar tokens (configurar con `wrangler secret put JWT_SECRET`)

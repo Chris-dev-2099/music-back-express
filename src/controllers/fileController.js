@@ -1,7 +1,7 @@
-// Controlador para operaciones de archivos usando R2 bucket
+import { fileService } from '../services/fileService.js'
 
 export async function listFiles(bucket) {
-  const list = await bucket.list()
+  const list = await fileService.listFiles(bucket)
   return new Response(JSON.stringify({ success: true, files: list.objects }), {
     status: 200, headers: { 'Content-Type': 'application/json' }
   })
@@ -11,7 +11,7 @@ export async function uploadFile(request, url, bucket) {
   const key = url.pathname.split('/').pop()
   const contentType = request.headers.get('content-type') ?? 'application/octet-stream'
   const body = await request.arrayBuffer()
-  await bucket.put(key, body, { httpMetadata: { contentType } })
+  await fileService.uploadFile(bucket, key, body, contentType)
   return new Response(JSON.stringify({ success: true, message: `'${key}' subido` }), {
     status: 201, headers: { 'Content-Type': 'application/json' }
   })
@@ -19,7 +19,7 @@ export async function uploadFile(request, url, bucket) {
 
 export async function downloadFile(url, bucket) {
   const key = url.pathname.split('/').pop()
-  const object = await bucket.get(key)
+  const object = await fileService.getFile(bucket, key)
   if (!object) return new Response(JSON.stringify({ error: 'Archivo no encontrado' }), {
     status: 404, headers: { 'Content-Type': 'application/json' }
   })
@@ -31,8 +31,8 @@ export async function downloadFile(url, bucket) {
 
 export async function deleteFile(url, bucket) {
   const key = url.pathname.split('/').pop()
-  await bucket.delete(key)
-  return new Response(JSON.stringify({ success: true, message: `'${key}' eliminado` }), {
+  await fileService.deleteFile(bucket, key)
+  return new Response(JSON.stringify({ success: true, message: `'${key}' eliminado'` }), {
     status: 200, headers: { 'Content-Type': 'application/json' }
   })
 }

@@ -1,16 +1,16 @@
 export const fileService = {
-    uploadFile: async (key, body, contentType) => {
-        return await env.MY_BUCKET.put(key, body, {
-            httpMetadata: {contentType}
-        })
-    },
-    listFiles: async () => {
-        return await env.MY_BUCKET.list()
-    },
-    getFile: async (key) => {
-        return await env.MY_BUCKET.get(key)
-    },
-    deleteFile: async (key) => {
-        return await env.MY_BUCKET.delete(key)
-    }
+  uploadFile: async (bucket, key, body, contentType) => {
+    return await bucket.put(key, body, {
+      httpMetadata: { contentType }
+    })
+  },
+  listFiles: async (bucket) => {
+    return await bucket.list()
+  },
+  getFile: async (bucket, key) => {
+    return await bucket.get(key)
+  },
+  deleteFile: async (bucket, key) => {
+    return await bucket.delete(key)
+  }
 }
