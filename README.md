@@ -77,7 +77,7 @@ Roles válidos: `user`, `admin`
 | DELETE | `/api/v1/files/{id}` | Eliminar canción (D1 + R2) |
 
 **Subir canción** — `POST /api/v1/files` (multipart/form-data)
-- Campo `metadata`: JSON `{ "nombre_cancion": "...", "artista_cancion": "...", "album_cancion": "...", "genero": "..." }`
+- Campo `metadata`: JSON `{ "nombre_cancion": "...", "artista_cancion": "...", "genero": "Pop, Rock" }` (varios géneros separados por coma)
 - Campo `archivo`: archivo de audio
 
 ## Desarrollo
@@ -93,14 +93,6 @@ npm run dev
 wrangler deploy
 ```
 
-## Migración de base de datos
-
-```bash
-wrangler d1 execute ciafy --file=migrations/001_remove_apellido_add_correo.sql
-
-# Crear tabla de canciones
-wrangler d1 execute ciafy --file=migrations/002_create_canciones.sql
-```
 
 ## Configuración
 
@@ -108,6 +100,4 @@ Requiere los siguientes bindings en Cloudflare:
 
 - `DB`: Binding a D1 Database
 - `MY_BUCKET`: Binding a R2 Bucket
-- `JWT_SECRET`: Secreto para firmar tokens (configurar con `wrangler secret put JWT_SECRET`)
-- `RESEND_API_KEY`: API key de Resend para envío de correos
-- `DOMAIN`: Dominio de la app para el enlace de recuperación
+

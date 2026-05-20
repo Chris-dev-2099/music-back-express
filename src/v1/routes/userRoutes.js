@@ -13,6 +13,8 @@ export async function userRoutes(request, url, env) {
   if (url.pathname === '/api/v1/users/forgot-password' && request.method === 'POST') return forgotPassword(request, db, env)
   if (url.pathname === '/api/v1/users/reset-password'  && request.method === 'POST') return resetPassword(request, db, env)
 
+  if (!url.pathname.startsWith('/api/v1/users')) return null
+
   const user = authenticate(request, env)
   if (!user) return unauth()
 
