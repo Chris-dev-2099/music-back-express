@@ -4,7 +4,9 @@
   "compatibility_date": "2026-04-22",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "JWT_SECRET": "dev-secret-change-in-prod"
+    "JWT_SECRET": "dev-secret-change-in-prod",
+    "RESEND_API_KEY": "",
+    "DOMAIN": "http://localhost:8787"
   },
   "r2_buckets": [
     {

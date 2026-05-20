@@ -50,7 +50,7 @@ export default {
     if (userResponse) return withCORS(userResponse)
 
     // Intentar rutas de archivos
-    const fileResponse = await fileRoutes(request, url, bucket)
+    const fileResponse = await fileRoutes(request, url, env)
     if (fileResponse) return withCORS(fileResponse)
 
     // Si no coincide ninguna ruta, devolver 404

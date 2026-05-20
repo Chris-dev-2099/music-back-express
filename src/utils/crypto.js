@@ -12,3 +12,15 @@ export async function verifyPassword(password, hash) {
 export function createToken(payload, secret) {
   return jwt.sign(payload, secret, { expiresIn: '7d' })
 }
+
+export function signToken(payload, secret, options = {}) {
+  return jwt.sign(payload, secret, { expiresIn: options.expiresIn || '7d' })
+}
+
+export function verifyToken(token, secret) {
+  try {
+    return jwt.verify(token, secret)
+  } catch {
+    return null
+  }
+}

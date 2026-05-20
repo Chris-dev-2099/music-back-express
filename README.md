@@ -26,6 +26,8 @@ El proyecto está organizado en capas:
 |--------|------|------|-------------|
 | POST | `/api/v1/users/register` | ❌ | Registrar nuevo usuario |
 | POST | `/api/v1/users/login` | ❌ | Iniciar sesión |
+| POST | `/api/v1/users/forgot-password` | ❌ | Solicitar recuperación de contraseña |
+| POST | `/api/v1/users/reset-password` | ❌ | Restablecer contraseña con token |
 | GET | `/api/v1/users` | ✅ | Obtener todos los usuarios |
 | PUT | `/api/v1/users/{id}` | ✅ | Actualizar usuario |
 | DELETE | `/api/v1/users/{id}` | ✅ | Eliminar usuario |
@@ -48,16 +50,35 @@ El proyecto está organizado en capas:
 }
 ```
 
+**Forgot password** — `POST /api/v1/users/forgot-password`
+```json
+{
+  "correo": "user@example.com"
+}
+```
+
+**Reset password** — `POST /api/v1/users/reset-password`
+```json
+{
+  "token": "jwt_token_recibido_por_email",
+  "contrasena": "nueva123"
+}
+```
+
 Roles válidos: `user`, `admin`
 
 ### Archivos
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| GET | `/api/v1/files` | Listar archivos |
-| PUT | `/api/v1/files/{filename}` | Subir archivo |
-| GET | `/api/v1/files/{filename}` | Descargar archivo |
-| DELETE | `/api/v1/files/{filename}` | Eliminar archivo |
+| GET | `/api/v1/files` | Listar canciones (desde D1 con metadatos) |
+| POST | `/api/v1/files` | Subir canción (multipart: metadata + archivo) |
+| GET | `/api/v1/files/{id}` | Descargar archivo de canción |
+| DELETE | `/api/v1/files/{id}` | Eliminar canción (D1 + R2) |
+
+**Subir canción** — `POST /api/v1/files` (multipart/form-data)
+- Campo `metadata`: JSON `{ "nombre_cancion": "...", "artista_cancion": "...", "album_cancion": "...", "genero": "..." }`
+- Campo `archivo`: archivo de audio
 
 ## Desarrollo
 
@@ -76,6 +97,9 @@ wrangler deploy
 
 ```bash
 wrangler d1 execute ciafy --file=migrations/001_remove_apellido_add_correo.sql
+
+# Crear tabla de canciones
+wrangler d1 execute ciafy --file=migrations/002_create_canciones.sql
 ```
 
 ## Configuración
@@ -85,3 +109,5 @@ Requiere los siguientes bindings en Cloudflare:
 - `DB`: Binding a D1 Database
 - `MY_BUCKET`: Binding a R2 Bucket
 - `JWT_SECRET`: Secreto para firmar tokens (configurar con `wrangler secret put JWT_SECRET`)
+- `RESEND_API_KEY`: API key de Resend para envío de correos
+- `DOMAIN`: Dominio de la app para el enlace de recuperación

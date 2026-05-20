@@ -1,4 +1,4 @@
-import { register, login, getAll, deleteUser, updateUser } from '../../controllers/userController.js'
+import { register, login, forgotPassword, resetPassword, getAll, deleteUser, updateUser } from '../../controllers/userController.js'
 import { authenticate } from '../../utils/auth.js'
 
 function unauth() {
@@ -8,8 +8,10 @@ function unauth() {
 export async function userRoutes(request, url, env) {
   const db = env.DB
 
-  if (url.pathname === '/api/v1/users/register' && request.method === 'POST') return register(request, db)
-  if (url.pathname === '/api/v1/users/login'    && request.method === 'POST') return login(request, db, env)
+  if (url.pathname === '/api/v1/users/register'       && request.method === 'POST') return register(request, db)
+  if (url.pathname === '/api/v1/users/login'           && request.method === 'POST') return login(request, db, env)
+  if (url.pathname === '/api/v1/users/forgot-password' && request.method === 'POST') return forgotPassword(request, db, env)
+  if (url.pathname === '/api/v1/users/reset-password'  && request.method === 'POST') return resetPassword(request, db, env)
 
   const user = authenticate(request, env)
   if (!user) return unauth()
