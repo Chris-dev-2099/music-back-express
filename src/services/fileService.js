@@ -4,9 +4,6 @@ export const fileService = {
       httpMetadata: { contentType }
     })
   },
-  listFiles: async (bucket) => {
-    return await bucket.list()
-  },
   getFile: async (bucket, key) => {
     return await bucket.get(key)
   },

@@ -1,5 +1,6 @@
 {
   "name": "apimusic",
+  "account_id": "ad4b2a49176690622b8efc956c1f3166",
   "main": "src/index.js",
   "compatibility_date": "2026-04-22",
   "compatibility_flags": ["nodejs_compat"],
@@ -19,7 +20,8 @@
     {
       "binding": "DB",
       "database_name": "ciafy",
-      "database_id": "77d1dea6-2015-4b5f-b2ab-bb62580901e7"
+      "database_id": "77d1dea6-2015-4b5f-b2ab-bb62580901e7",
+      "migrations_dir": "migrations"
     }
   ]
 }

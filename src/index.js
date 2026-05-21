@@ -1,5 +1,5 @@
 import { userRoutes } from './v1/routes/userRoutes.js'
-import { fileRoutes } from './v1/routes/fileRoutes.js'
+import { songRoutes } from './v1/routes/songRoutes.js'
 
 
 function withCORS(response) {
@@ -49,9 +49,9 @@ export default {
     const userResponse = await userRoutes(request, url, env)
     if (userResponse) return withCORS(userResponse)
 
-    // Intentar rutas de archivos
-    const fileResponse = await fileRoutes(request, url, env)
-    if (fileResponse) return withCORS(fileResponse)
+    // Intentar rutas de canciones
+    const songResponse = await songRoutes(request, url, env)
+    if (songResponse) return withCORS(songResponse)
 
     // Si no coincide ninguna ruta, devolver 404
     return withCORS(new Response(JSON.stringify({ error: 'Not Found' }), { 
