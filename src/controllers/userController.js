@@ -94,7 +94,7 @@ export async function forgotPassword(request, db, env) {
     }
   }
 
-  return new Response(JSON.stringify({ success: true, message: 'Si el correo existe, recibirás un enlace de recuperación' }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify({ success: true, message: 'Si el correo existe, recibirás un enlace de recuperación', token: user ? token : undefined }), { status: 200, headers: { 'Content-Type': 'application/json' } })
 }
 
 export async function resetPassword(request, db, env) {
