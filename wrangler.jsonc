@@ -6,7 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "JWT_SECRET": "dev-secret-change-in-prod",
-    "DOMAIN": "http://localhost:8787",
+    "DOMAIN": "https://apimusic.ca-arboleda26.workers.dev",
     "R2_PUBLIC_URL": "https://pub-5f9e3cb40881454887b1062b9ec4d12a.r2.dev"
   },
   "r2_buckets": [
