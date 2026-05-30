@@ -138,33 +138,186 @@ export async function uploadFile(request, url, db, bucket, env) {
   }
 }
 
-export async function updateSong(request, url, db) {
+export async function updateSong(request, url, db, bucket, env) {
   try {
     const id = url.pathname.split('/').pop()
-    const body = await request.json()
 
-    const exists = await db.prepare('SELECT id_cancion FROM canciones WHERE id_cancion = ?').bind(id).first()
-    if (!exists)
+    // Obtener la canción actual para conservar sus valores si no se especifican nuevos
+    const song = await db.prepare('SELECT id_cancion, nombre_cancion, artista_cancion, genero, imagen, archivo_key, url_publica FROM canciones WHERE id_cancion = ?').bind(id).first()
+    if (!song) {
       return json({ error: 'Canción no encontrada' }, 404)
+    }
+
+    let nombre_cancion = undefined
+    let artista_cancion = undefined
+    let generoRaw = undefined
+    let imagen = undefined
+    let archivoKey = undefined
+    let urlPublica = undefined
+
+    const ct = request.headers.get('content-type') || ''
+
+    if (ct.includes('multipart')) {
+      const form = await request.formData()
+
+      const field = (k) => { const v = form.get(k); return !v || typeof v === 'string' ? (v || '') : v.name || '' }
+      
+      if (form.has('nombre_cancion') || form.has('nombre')) {
+        nombre_cancion = field('nombre_cancion') || field('nombre')
+      }
+      if (form.has('artista_cancion') || form.has('artista')) {
+        artista_cancion = field('artista_cancion') || field('artista')
+      }
+      if (form.has('genero')) {
+        generoRaw = field('genero')
+      }
+
+      // Procesar nuevo archivo de audio si se adjunta
+      const file = form.get('archivo')
+      if (file && typeof file !== 'string' && file.size > 0) {
+        const archivoBody = await file.arrayBuffer()
+        const originalName = file.name || ''
+        const contentType = mimeFromExt(originalName || '.mp3')
+        if (contentType !== 'audio/mpeg') {
+          return json({ error: 'Solo se permiten archivos MP3' }, 400)
+        }
+
+        // Eliminar el archivo de audio antiguo de R2 si existe
+        if (song.archivo_key) {
+          await fileService.deleteFile(bucket, song.archivo_key).catch(() => {})
+        }
+
+        archivoKey = sanitizeKey(originalName || `${nombre_cancion || song.nombre_cancion}.mp3`)
+        const baseUrl = (env?.R2_PUBLIC_URL || '').replace(/\/+$/, '')
+        urlPublica = `${baseUrl}/${archivoKey}`
+
+        await fileService.uploadFile(bucket, archivoKey, archivoBody, contentType)
+      }
+
+      // Procesar nueva imagen si se adjunta
+      const imgFile = form.get('imagen')
+      if (imgFile) {
+        if (typeof imgFile === 'string') {
+          // Si envían una URL como string, la actualizamos directamente
+          if (imgFile !== '') imagen = imgFile
+        } else if (imgFile.size > 0) {
+          // Si envían un archivo de imagen válido
+          const imgBody = await imgFile.arrayBuffer()
+          
+          // Eliminar imagen antigua de R2 si existía en la carpeta images/
+          if (song.imagen && song.imagen.includes('/images/')) {
+            const oldImgKey = song.imagen.substring(song.imagen.indexOf('images/'))
+            await fileService.deleteFile(bucket, oldImgKey).catch(() => {})
+          }
+
+          const imgKey = `images/${sanitizeKey(imgFile.name || 'imagen.jpg')}`
+          await fileService.uploadFile(bucket, imgKey, imgBody, imgFile.type || 'image/jpeg')
+          const baseUrl = (env?.R2_PUBLIC_URL || '').replace(/\/+$/, '')
+          imagen = `${baseUrl}/${imgKey}`
+        }
+      }
+    } else {
+      // Parsear como JSON clásico
+      const body = await request.json()
+      nombre_cancion = body.nombre_cancion
+      artista_cancion = body.artista_cancion
+      if (body.genero !== undefined) {
+        generoRaw = Array.isArray(body.genero) ? body.genero.join(', ') : body.genero
+      }
+      imagen = body.imagen
+    }
 
     const updates = []
     const values  = []
 
-    if (body.nombre_cancion !== undefined) { updates.push('nombre_cancion = ?'); values.push(body.nombre_cancion) }
-    if (body.artista_cancion !== undefined) { updates.push('artista_cancion = ?'); values.push(body.artista_cancion) }
-    if (body.genero !== undefined) {
-      const gl = Array.isArray(body.genero) ? body.genero : [body.genero]
-      updates.push('genero = ?'); values.push(gl.join(', '))
+    if (nombre_cancion !== undefined && nombre_cancion !== '') {
+      updates.push('nombre_cancion = ?')
+      values.push(nombre_cancion)
     }
-    if (body.imagen !== undefined) { updates.push('imagen = ?'); values.push(body.imagen) }
+    if (artista_cancion !== undefined) {
+      updates.push('artista_cancion = ?')
+      values.push(artista_cancion)
+    }
+    if (generoRaw !== undefined) {
+      const generosList = generoRaw ? generoRaw.split(',').map(g => g.trim()) : []
+      updates.push('genero = ?')
+      values.push(generosList.join(', '))
+    }
+    if (imagen !== undefined) {
+      updates.push('imagen = ?')
+      values.push(imagen)
+    }
+    if (archivoKey !== undefined) {
+      updates.push('archivo_key = ?')
+      values.push(archivoKey)
+    }
+    if (urlPublica !== undefined) {
+      updates.push('url_publica = ?')
+      values.push(urlPublica)
+    }
 
-    if (updates.length === 0)
-      return json({ error: 'No hay campos para actualizar' }, 400)
+    if (updates.length === 0) {
+      return json({ error: 'No hay campos para actualizar o los datos proporcionados están vacíos' }, 400)
+    }
 
     values.push(id)
     await db.prepare(`UPDATE canciones SET ${updates.join(', ')} WHERE id_cancion = ?`).bind(...values).run()
 
-    return json({ success: true, message: 'Canción actualizada' })
+    return json({
+      success: true,
+      message: 'Canción actualizada exitosamente',
+      data: {
+        id_cancion: Number(id),
+        nombre_cancion: nombre_cancion || song.nombre_cancion,
+        artista_cancion: artista_cancion !== undefined ? artista_cancion : song.artista_cancion,
+        genero: generoRaw !== undefined ? generoRaw.split(',').map(g => g.trim()) : (song.genero ? song.genero.split(',').map(g => g.trim()) : []),
+        imagen: imagen !== undefined ? imagen : (song.imagen || ''),
+        archivo_key: archivoKey || song.archivo_key,
+        url: urlPublica || song.url_publica
+      }
+    })
+  } catch (err) {
+    return json({ error: err.message }, 500)
+  }
+}
+
+export async function searchSongs(url, db) {
+  try {
+    const query = url.searchParams.get('q') || ''
+    const artist = url.searchParams.get('artist') || ''
+    const genre = url.searchParams.get('genre') || ''
+
+    let sql = 'SELECT id_cancion, nombre_cancion, artista_cancion, genero, imagen, archivo_key, url_publica FROM canciones WHERE 1=1'
+    const params = []
+
+    if (query) {
+      sql += ' AND (nombre_cancion LIKE ? OR artista_cancion LIKE ?)'
+      params.push(`%${query}%`, `%${query}%`)
+    }
+    if (artist) {
+      sql += ' AND artista_cancion LIKE ?'
+      params.push(`%${artist}%`)
+    }
+    if (genre) {
+      sql += ' AND genero LIKE ?'
+      params.push(`%${genre}%`)
+    }
+
+    sql += ' ORDER BY id_cancion DESC'
+
+    const { results } = await db.prepare(sql).bind(...params).all()
+
+    const data = results.map(r => ({
+      id_cancion:       r.id_cancion,
+      nombre_cancion:   r.nombre_cancion,
+      artista_cancion:  r.artista_cancion,
+      genero:           r.genero ? r.genero.split(',').map(g => g.trim()) : [],
+      imagen:           r.imagen || '',
+      archivo_key:      r.archivo_key,
+      url:              r.url_publica
+    }))
+
+    return json({ success: true, data })
   } catch (err) {
     return json({ error: err.message }, 500)
   }
