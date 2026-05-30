@@ -61,40 +61,44 @@ export async function login(request, db, env) {
 }
 
 export async function forgotPassword(request, db, env) {
-  const { correo } = await request.json()
+  try {
+    const { correo } = await request.json()
 
-  if (!correo || !EMAIL_REGEX.test(correo))
-    return new Response(JSON.stringify({ error: 'Correo inválido' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
+    if (!correo || !EMAIL_REGEX.test(correo))
+      return new Response(JSON.stringify({ error: 'Correo inválido' }), { status: 400, headers: { 'Content-Type': 'application/json' } })
 
-  const user = await db.prepare('SELECT id_usuarios, nombre_usuario, correo FROM usuarios_ciafy WHERE correo = ?').bind(correo).first()
+    const user = await db.prepare('SELECT id_usuarios, nombre_usuario, correo FROM usuarios_ciafy WHERE correo = ?').bind(correo).first()
 
-  const secret = env?.JWT_SECRET || 'dev-secret-change-in-prod'
-  const token = signToken({ email: user?.correo, userId: user?.id_usuarios }, secret, { expiresIn: '15m' })
+    const secret = env?.JWT_SECRET || 'dev-secret-change-in-prod'
+    const token = user ? signToken({ email: user.correo, userId: user.id_usuarios }, secret, { expiresIn: '15m' }) : null
 
-  if (user && env?.RESEND_API_KEY) {
-    const domain = env?.DOMAIN || 'http://localhost:8787'
-    const resetLink = `${domain}/reset-password?token=${token}`
+    if (user && env?.RESEND_API_KEY) {
+      const domain = env?.DOMAIN || 'http://localhost:8787'
+      const resetLink = `${domain}/reset-password?token=${token}`
 
-    try {
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: 'onboarding@resend.dev',
-          to: user.correo,
-          subject: 'Recuperación de contraseña - ciafy',
-          html: `<p>Hola <b>${user.nombre_usuario}</b>,</p><p>Recibiste este correo porque solicitaste restablecer tu contraseña.</p><p>Haz clic en el siguiente enlace (válido por 15 minutos):</p><p><a href="${resetLink}">${resetLink}</a></p><p>Si no solicitaste esto, ignora este mensaje.</p>`
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'onboarding@resend.dev',
+            to: user.correo,
+            subject: 'Recuperación de contraseña - ciafy',
+            html: `<p>Hola <b>${user.nombre_usuario}</b>,</p><p>Recibiste este correo porque solicitaste restablecer tu contraseña.</p><p>Haz clic en el siguiente enlace (válido por 15 minutos):</p><p><a href="${resetLink}">${resetLink}</a></p><p>Si no solicitaste esto, ignora este mensaje.</p>`
+          })
         })
-      })
-    } catch {
-      console.error('Error al enviar email de recuperación')
+      } catch {
+        console.error('Error al enviar email de recuperación')
+      }
     }
-  }
 
-  return new Response(JSON.stringify({ success: true, message: 'Si el correo existe, recibirás un enlace de recuperación', token: user ? token : undefined }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ success: true, message: 'Si el correo existe, recibirás un enlace de recuperación', token: user ? token : undefined }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  } catch (error) {
+    return new Response(JSON.stringify({ error: 'Error interno del servidor', detalles: error.message }), { status: 500, headers: { 'Content-Type': 'application/json' } })
+  }
 }
 
 export async function resetPassword(request, db, env) {
