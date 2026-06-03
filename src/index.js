@@ -10,7 +10,7 @@ function withCORS(response, origin) {
   const headers = new Headers(response.headers)
   headers.set('Access-Control-Allow-Origin', allowedOrigin)
   headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, ngrok-skip-browser-warning')
   headers.set('Access-Control-Allow-Credentials', 'true')
   headers.set('Vary', 'Origin')
 
@@ -35,7 +35,7 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': origin || '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, ngrok-skip-browser-warning',
           'Access-Control-Allow-Credentials': 'true',
           'Access-Control-Max-Age': '86400',
           'Vary': 'Origin',
